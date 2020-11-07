@@ -1,0 +1,297 @@
+<html>
+<head>
+<title>Footy tipping</title>
+<script>
+
+teams={ 
+	"Adelaide":	"https://upload.wikimedia.org/wikipedia/commons/c/ca/AFL_Adelaide_Icon.gif",
+	"Brisbane":	"https://upload.wikimedia.org/wikipedia/commons/6/6b/BrisbaneAFL.svg",
+	"Carlton":	"https://upload.wikimedia.org/wikipedia/commons/6/6d/Carlton_AFL_icon.svg",
+	"Collingwood":	"https://upload.wikimedia.org/wikipedia/commons/0/0a/AFL_Collingwood_Icon.jpg",
+	"Essendon":	"https://upload.wikimedia.org/wikipedia/commons/b/bb/EssendonDesign.svg",
+	"Fremantle":	"https://upload.wikimedia.org/wikipedia/commons/0/0c/AFL_Fremantle_Icon_2011.png",
+	"Geelong":	"https://upload.wikimedia.org/wikipedia/commons/5/58/AFL_Geelong_Icon.jpg",
+	"Gold Coast":	"https://upload.wikimedia.org/wikipedia/commons/1/16/AFL_Gold_Coast_Icon.jpg",
+	"GWS":		"https://upload.wikimedia.org/wikipedia/commons/7/79/AFL_GWS_Icon.jpg",
+	"Hawthorn":	"https://upload.wikimedia.org/wikipedia/commons/0/0e/AFL_Hawthorn_Icon.jpg",
+	"Melbourne":	"https://upload.wikimedia.org/wikipedia/commons/2/29/AFL_Melbourne_Icon.jpg",
+	"North Melbourne":"https://upload.wikimedia.org/wikipedia/commons/7/76/AFL_North_Melbourne_Icon.jpg",
+	"Port Adelaide":"https://upload.wikimedia.org/wikipedia/commons/9/99/AFL_Port_Adelaide_Icon.jpg",
+	"Richmond":	"https://upload.wikimedia.org/wikipedia/commons/5/5b/AFL_Richmond_Icon.jpg",
+	"St Kilda":	"https://upload.wikimedia.org/wikipedia/commons/9/95/AFL_St_Kilda_Icon.jpg",
+	"Sydney":	"https://upload.wikimedia.org/wikipedia/commons/b/bc/AFL_Sydney_Icon.jpg",
+	"West Coast":	"https://upload.wikimedia.org/wikipedia/commons/4/4f/AFL_West_Coast_Eagles_Icon.png",
+	"Bulldogs":	"https://upload.wikimedia.org/wikipedia/commons/7/71/AFL_Footscray_Icon.jpg"
+}
+
+tippers={
+	"Genevieve":"Genevieve",
+	"Sarah":"Mum",
+	"Paul":"Dad"
+}
+
+roundDates=[	
+	"Round 1",	"19 March, 2020",	"22 March, 2020"
+]
+
+matches=[[
+["Richmond","Carlton"],
+["Bulldogs","Collingwood"],
+["Essendon","Fremantle"],
+["Adelaide","Sydney"],
+["GWS","Geelong"],
+["Gold Coast","Port Adelaide"],
+["North Melbourne","St Kilda"],
+["Hawthorn","Brisbane"],
+["West Coast","Melbourne"]
+]]
+
+month = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+
+var counter=0, rnd=1, params = {};
+
+var linkElement
+
+function init(){
+	params = {}
+	populateParams()
+	
+	computeRound()
+	
+	document.getElementById("email_btn").disabled=true;
+	linkElement = document.getElementById("linkElem");
+	linkElement.style.visibility ="hidden";
+	linkElement.style.position ="absolute";
+	//document.appendChild(linkElement);
+	populateRoundChoices()	
+	populateTippers()
+
+	counter = 0
+	advance()
+}
+
+
+function populateParams(){
+	if (location.search) {
+	    var parts = location.search.substring(1).split('&');
+
+	    for (var i = 0; i < parts.length; i++) {
+		var nv = parts[i].split('=');
+		if (!nv[0]) continue;
+		params[nv[0]] = nv[1] || true;
+	    }
+	}
+}
+
+function computeRound(){
+	if (params.round) {
+  		rnd = params.round
+	}
+	else{
+		rnd=1
+		today = new Date();
+		nxtRnd = new Date(Date.parse(roundDates[rnd*3-1]));
+		
+		while(rnd<=roundDates.length/3 && today>nxtRnd){
+			alert(today+" !! "+nxtRnd)
+			rnd++;
+			nxtRnd.setMilliseconds(Date.parse(roundDates[rnd*3-1]));
+		}
+		if(rnd<=roundDates.length/3){
+			if(location.search)
+				location.search+="&"+"round="+rnd
+			else
+				location.search+="?"+"round="+rnd
+		}
+		else
+			rnd=1
+	}
+		
+}
+
+function updateRound(){
+	var menu = document.getElementById("roundChoice");
+	
+	params.round=document.getElementById("roundChoice").selectedIndex+1
+	var newSearch=""	
+	for(var pm in params)
+		newSearch+="&"+pm+"="+params[pm]
+	location.search ="?"+newSearch.substring(1)
+}
+
+function populateRoundChoices(){
+	var menu = document.getElementById("roundChoice");
+	for(var r=0; r<roundDates.length; r+=3){
+		var item = document.createElement("option");
+		var startDate = new Date(Date.parse(roundDates[r+1]))
+		var endDate = new Date(Date.parse(roundDates[r+2]))
+		item.innerHTML = roundDates[r]+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;("+startDate.getDate()+""+month[startDate.getMonth()]+" -"+endDate.getDate()+""+month[endDate.getMonth()]+")"
+		if(r/3 == rnd-1) item.selected=true
+		menu.add(item)
+	}
+
+}
+
+function populateTippers(){
+	var menu = document.getElementById("tipper");
+	for(var nm in tippers){
+		var item = document.createElement("option");
+		item.value=nm
+		item.text=tippers[nm]
+		menu.add(item)	
+	}
+}
+
+function updateTippers(){
+	if(!document.getElementById("email_btn").disabled)
+		linkElement.href=mailtoText();
+}
+
+
+function advance(){
+	if(counter<matches[rnd-1].length){
+		for(var side=0; side<=1; side++){
+			var teamElem = document.getElementById("team"+side)
+			while(teamElem.firstChild) teamElem.removeChild(teamElem.firstChild)
+
+			var teamImg = document.getElementById("teamimg"+side)
+			teamImg.src=teams[matches[rnd-1][counter][side]]
+			teamElem.appendChild(document.createTextNode(matches[rnd-1][counter][side]))
+		}
+	}
+	else 
+		readyToEmail();
+	
+	counter++;	
+}
+
+function choose(side){
+	if(counter<=matches[rnd-1].length){
+		matchElem=document.getElementById("match"+counter)
+		matchElem.style.display="block"
+		var txt = document.createTextNode(matches[rnd-1][counter-1][side])
+		matchElem.appendChild(txt)
+
+		advance()
+	}	
+}
+
+function readyToEmail(){
+	document.getElementById("email_btn").disabled=false;
+
+	linkElement.href = mailtoText();
+}
+
+function mailtoText(){
+	var emailString ="mailto:iwhunter@bigpond.net.au?subject="
+
+	emailString += document.getElementById("tipper").value
+
+	emailString +="'s tips "
+
+	emailString +="("+roundDates[3*(rnd-1)]+")&body="
+
+	for(i=1; i<=matches[rnd-1].length; i++){
+		emailString+=document.getElementById("match"+i).childNodes[1].nodeValue;
+		emailString+="%0D%0A";
+	}
+
+	return emailString
+}
+
+
+</script>
+
+<style>
+	.hideMe {display:none;}
+
+	.block {
+		display:block;
+		height:550px;
+	}
+
+	img {
+		position: absolute;
+		left: 100px;
+		top: 100px;
+		width: 300px;
+		height: 300px;
+	}
+	
+	.teamName {
+		position: absolute;
+		left: 210px;
+		top: 450px;
+	}
+
+	#leftside {
+		position: absolute;
+		width: 500px;
+		height: 500px;
+	}
+
+	#rightside {
+		position: absolute;
+		width: 500px;
+		height: 500px;
+		left: 500px;
+		border-left: 1px solid black;
+	}
+
+</style>
+
+</head>
+<body onload="init()">
+<div>
+<form id="email_form" method="POST" enctype="text/plain">
+<select id="roundChoice" onchange="updateRound()">
+</select>
+<select id="tipper" onchange="updateTippers()">
+</select>
+<button type="button" id="email_btn" disabled="true" value="Send email" onclick="linkElement.click()">Send email</button>
+<button type="button" onclick="location.reload()">Reset</button>
+<form>
+
+</div>
+
+
+
+<div id="leftside" onclick="choose(0)">
+	<img id="teamimg0">
+	<div class="teamName" id="team0">Team 1</div>
+</div>
+
+<div id="rightside" onclick="choose(1)">
+	<img id="teamimg1">
+	<div class="teamName" id="team1">Team 2</div>
+</div>
+<div class="block">
+</div>
+
+
+
+<div class="hideMe" id="match1">
+</div>
+<div class="hideMe" id="match2">
+</div>
+<div class="hideMe" id="match3">
+</div>
+<div class="hideMe" id="match4">
+</div>
+<div class="hideMe" id="match5">
+</div>
+<div class="hideMe" id="match6">
+</div>
+<div class="hideMe" id="match7">
+</div>
+<div class="hideMe" id="match8">
+</div>
+<div class="hideMe" id="match9">
+</div>
+<a class="hideMe" id="linkElem">.</a>
+
+
+</body>
+
+
+</html>
