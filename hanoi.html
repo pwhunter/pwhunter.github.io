@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang='en' class=''>
+
+<head>
+
+  <meta charset='UTF-8'>
+  <title>Towers of Hanoi</title>
+
+  <meta name="robots" content="noindex">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Coda">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/sweetalert2/3.0.3/sweetalert2.min.css">
+
+  <style class="INLINE_PEN_STYLESHEET_ID">
+    #canves #score-panel, html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+#canves {
+  width: 750px;
+  height: 420px;
+  display: flex;
+  padding: 0;
+  justify-content: center;
+  align-items: flex-end;
+  position: relative;
+}
+#canves #score-panel {
+  width: 400px;
+  height: 53px;
+  position: absolute;
+  top: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 23px;
+  text-align: center;
+}
+#canves #score-panel li {
+  list-style: none;
+  display: inline-block;
+}
+#canves #score-panel li:last-child {
+  font-family: "Coda", cursive;
+  display: block;
+  font-size: 11px;
+  line-height: 1;
+}
+
+#score-panel .fl{
+    float: left;
+}
+
+#score-panel .fr{
+    float: right;
+}
+
+.button-panel {
+  position: absolute;
+  bottom: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  text-align: center;
+  width: 750px;
+}
+.button-panel ul{
+padding-left: 0px;
+}
+
+.button-panel li {
+  list-style: none;
+  display: inline-block;
+
+  width: 90px;
+  margin: 5px;
+  border-radius: 9px;
+  background-color: #42a097;
+  padding: 4px;
+  border: 1px solid;
+  cursor: pointer;
+  color: white;
+
+}
+
+.button-panel li:hover{
+  background-color: #03787c;
+}
+
+.button-panel.disabled li{
+    background-color: #888;
+}
+
+.button-panel.disabled li:hover{
+  background-color: #888;
+}
+
+.button-panel li.hidden{
+  display: none;
+}
+
+
+.restart {
+  cursor: pointer;
+  position: absolute;
+  bottom: -100px;
+  left: 50%;
+  font-size: 21px;
+  transform: translateX(-50%);
+}
+
+.tower {
+  width: 255px;
+  height: 310px;
+  border-bottom: 5px solid #000000;
+  border-radius: 7px;
+  position: relative;
+  text-align: center;
+  padding: 0;
+  margin: 0 25px 0 0;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  cursor: pointer;
+}
+.tower#tower-3 {
+  margin: 0;
+}
+.tower:before {
+  width: 6px;
+  height: 300px;
+  content: "";
+  display: block;
+  background: #000000;
+  position: absolute;
+  bottom: -2px;
+  left: calc(50% - 2px);
+  z-index: 10;
+  border-radius: 30px;
+}
+
+.bestScore {
+    color: red;
+}
+
+.bestScore.optimal {
+    color: #7bb33a;
+}
+
+.disk {
+  list-style: none;
+  height: 30px;
+  display: block;
+  border-radius: 9px;
+  font-size: 0;
+  z-index: 20;
+}
+.disk.hold {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.swal2-overlay {
+  background-color: white;
+}
+
+.disk-1 {
+  width: 100px;
+  background-color: #e91e63;
+}
+
+.disk-1.select{
+  background-color: #701030;
+}
+
+.disk-2 {
+  width: 115px;
+  background-color: #673ab7;
+}
+.disk-2.select{
+    background-color: #351560;
+}
+
+.disk-3 {
+  width: 130px;
+  background-color: #3f51b5;
+}
+.disk-3.select{
+    background-color: #202555;
+}
+
+.disk-4 {
+  width: 145px;
+  background-color: #0080cc;
+}
+.disk-4.select{
+    background-color: #004066;
+}
+
+.disk-5 {
+  width: 160px;
+    background-color: #008080;
+}
+.disk-5.select{
+    background-color: #005050;
+}
+
+.disk-6 {
+  width: 175px;
+  background-color: #60aa60;
+}
+.disk-6.select{
+    background-color: #305530;
+}
+
+.disk-7 {
+  width: 190px;
+  background-color: #80cc00;
+}
+.disk-7.select{
+    background-color: #406600;
+}
+
+.disk-8 {
+  width: 205px;
+  background-color: #ffcc00;
+}
+.disk-8.select{
+    background-color: #806600;
+}
+
+.disk-9 {
+  width: 220px;
+  background-color: #ff8000;
+}
+.disk-9.select{
+    background-color: #804000;
+}
+
+.disk-10 {
+  width: 235px;
+  background-color: #cc0000;
+}
+.disk-10.select{
+    background-color: #660000;
+}
+
+.popup {
+  position: relative;
+  display: inline-block;
+}
+
+.popup .popuptext {
+  visibility: hidden;
+  width: 260px;
+  background-color: #666;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 4px;
+  position: absolute;
+  z-index: 100;
+  margin-top: -350px;
+  left: 50%;
+  margin-left: -130px;
+  opacity: 90%
+}
+
+.popuptext.warning{
+      background-color: #a55;
+}
+
+
+.popup .show {
+  visibility: visible;
+  -webkit-animation: fadeIn 0.5s;
+  animation: fadeIn 0.5s
+}
+
+/* Add animation (fade in the popup) */
+@-webkit-keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity: 0.90;}
+}
+
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity:0.90 ;}
+}
+
+
+  </style>
+
+  
+<script src="https://cpwebassets.codepen.io/assets/editor/iframe/iframeConsoleRunner-7549a40147ccd0ba0a6b5373d87e770e49bb4689f1c2dc30cccc7463f207f997.js"></script>
+<script src="https://cpwebassets.codepen.io/assets/editor/iframe/iframeRefreshCSS-4793b73c6332f7f14a9b6bba5d5e62748e9d1bd0b5c52d7af6376f3d1c625d7e.js"></script>
+<script src="https://cpwebassets.codepen.io/assets/editor/iframe/iframeRuntimeErrors-4f205f2c14e769b448bcf477de2938c681660d5038bc464e3700256713ebe261.js"></script>
+</head>
+
+<body>
+  
+<div id="canves">
+  <div class="restart"><i class="fa fa-repeat"></i></div>
+  <div class="button-panel" id="buttonPanel">
+<div class="popup"><span id="popupMsg" class="popuptext"></span><span id="popupWarn" class="popuptext warning"></span></div><ul><li id="3sol"> Use 3 disk solution</li><li id="4sol"> Use 4 disk solution</li><li id="5sol"> Use 5 disk solution</li><li id="6sol"> Use 6 disk solution</li><li id="7sol"> Use 7 disk solution</li><li id="8sol"> Use 8 disk solution</li><li id="9sol"> Use 9 disk solution</li></ul></div>
+  <div class="curtain"></div>
+  <ul id="score-panel">
+    <li style="clear:both;">
+     <span class="fl"><h1> <span id="moves-num" ></span><span> Moves</span></h1></span><span>
+<select id="sel-num-disks">
+    <option id="3disks">3 disks</option>
+    <option id="4disks">4 disks</option>
+    <option id="5disks">5 disks</option>
+    <option id="6disks">6 disks</option>
+    <option id="7disks">7 disks</option>
+    <option id="8disks">8 disks</option>
+    <option id="9disks">9 disks</option>
+    <option id="10disks">10 disks</option>
+</select> </span> 
+<span class="fr"><span><h1 class="bestScore">(Best: </span><span id="best-score"></span><span>)</span></h1></span>
+    </li>
+
+  </ul>
+  <ul class="tower" id="tower-1"></ul>
+  <ul class="tower" id="tower-2"></ul>
+  <ul class="tower" id="tower-3"></ul>
+  
+</div>
+
+<form action="https://www.cse.unsw.edu.au/~cs9020/cgi-bin/thanks" method="GET" id="sendMe">
+<!--form action="thanks.html" method="POST" id="sendMe" -->
+<input type="hidden" name="zz" value=' 5592288 '/>
+<input type="hidden" id="movFld" name="moves" value="-1"/>
+</form>
+  
+<script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-1b93190375e9ccc259df3a57c1abc0e64599724ae30d7ea4c6877eb615f89387.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/sweetalert2/3.0.3/sweetalert2.min.js"></script>
+  <script  src="https://www.cse.unsw.edu.au/~cs9020/cgi-bin/hanoi.js"></script>
+</body>
+
+</html>
