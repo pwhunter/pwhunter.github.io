@@ -1,0 +1,233 @@
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" id="theme" href="https://webcms3.cse.unsw.edu.au/static/css/teal.theme.5eefaac1024d9e1608ba6fbf46cf47c2.css"/>
+<style>
+
+.button-palette{
+    margin: 10px;
+    width: 500px;
+    background: gray;
+    overflow-y: auto;
+}
+
+.button-bar{
+  top: 100%;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.3);
+}
+
+.button-bar > .btn{
+  float: left;
+  width:50px;
+  font-size: 25px;
+}
+
+.textarea{
+  width: 500px;
+  height: 220px;
+  font-size: 20px;
+}
+
+#latex-text{
+    display: none;
+    font-family: Monaco, monospace;
+    font-size: 16px;
+    background: rgb(240,240,240);
+    color: black;
+}
+
+.displayarea{
+    margin: 10px;
+    width: 500px;
+}
+
+.btn-bottom {
+    margin: 10px;
+    font-size: 16px;
+}
+
+</style>
+
+<script>
+function noBlur(){
+    let lt = document.getElementById("latex-text")
+    let ut = document.getElementById("unicode-text")
+    if(lt.style.display!="block")
+        ut.onblur = null;
+    else
+        lt.onblur = null;
+}
+
+function insert(elem, s){
+    let tb = document.getElementById("latex-text")
+    let symbol = s
+    if(tb.style.display!="block"){
+        tb = document.getElementById("unicode-text")
+        symbol = elem.value
+    }
+
+  let ss = tb.selectionStart;
+  let se = tb.selectionEnd;
+  tb.value = tb.value.substring(0,ss)+symbol+tb.value.substring(se);
+  tb.focus();
+  tb.selectionStart=ss+symbol.length;
+  tb.selectionEnd=ss+symbol.length;
+}
+
+function copy_text(){
+    let tb = document.getElementById("latex-text")
+    if(tb.style.display!="block"){
+        tb = document.getElementById("unicode-text")
+    }
+
+  let ss = tb.selectionStart;
+  let se = tb.selectionEnd;
+  tb.select()
+  tb.setSelectionRange(ss, se)
+  if(ss==se){
+    tb.setSelectionRange(0, tb.value.length)
+  }
+  
+  
+  document.execCommand("copy")
+  tb.selectionStart=ss
+  tb.selectionEnd=se
+    
+}
+
+function swap_text(){
+    let lt = document.getElementById("latex-text")
+    let ut = document.getElementById("unicode-text")
+    let lbtn = document.getElementById("lbtn")
+    if(lt.style.display!="block"){  //&#9013;
+        lbtn.innerHTML = "LaTeX editor"
+        lt.style.display="block"
+        ut.style.display="none"
+    }
+    else{
+        lbtn.innerHTML = "Unicode editor"
+        lt.style.display="none"
+        ut.style.display="block"
+    }
+}
+
+
+</script>
+<title>Symbol palette</title>
+</head>
+
+<body>
+
+<div class="displayarea">
+
+<textarea id="unicode-text" class="textarea" value=""></textarea>
+<textarea id="latex-text" class="textarea" value=""></textarea>
+<div class="row" >
+<div class="col-sm-6">
+<button id="lbtn" class="btn-latex btn-warning btn-bottom" type="button" onclick="swap_text()" style="float:left">Unicode editor</button>
+</div>
+<div class="col-sm-6">
+<button class="btn-info btn-bottom" type="button" style="float:right" onclick="copy_text()">Copy to clipboard</button>
+</div>
+</div>
+</div>
+
+
+
+
+<div class = "button-palette">
+<span class="button-bar aug-text-container">
+<input class="btn btn-primary" type="button" value="≤"  onmousedown="noBlur()" onclick="insert(this,'\\leq')" />
+<input class="btn btn-primary" type="button" value="≥"  onmousedown="noBlur()" onclick="insert(this,'\\geq')" />
+<input class="btn btn-primary" type="button" value="≠"  onmousedown="noBlur()" onclick="insert(this,'\\neq')" />
+<input class="btn btn-primary" type="button" value="⌊⌋"  onmousedown="noBlur()" onclick="insert(this,'\\lfloor\\rfloor')" />
+<input class="btn btn-primary" type="button" value="=₍₎"  onmousedown="noBlur()" onclick="insert(this,'=_{()}')" />
+<input class="btn btn-primary" type="button" value="ℕ"  onmousedown="noBlur()" onclick="insert(this,'\\mathbb{N}')" />
+<input class="btn btn-primary" type="button" value="ℤ"  onmousedown="noBlur()" onclick="insert(this,'\\mathbb{Z}')" />
+<input class="btn btn-primary" type="button" value="×"  onmousedown="noBlur()" onclick="insert(this,'\\times')" />
+<input class="btn btn-primary" type="button" value="⪯"  onmousedown="noBlur()" onclick="insert(this,'\\preceq')" />
+<input class="btn btn-primary" type="button" value="∘"  onmousedown="noBlur()" onclick="insert(this,'\\circ')" />
+</span>
+
+<span class="button-bar aug-text-container">
+<input class="btn btn-primary" type="button" value="∈"  onmousedown="noBlur()" onclick="insert(this,'\\in')" />
+<input class="btn btn-primary" type="button" value="∉"  onmousedown="noBlur()" onclick="insert(this,'\\notin')" />
+<input class="btn btn-primary" type="button" value="⊆"  onmousedown="noBlur()" onclick="insert(this,'\\subseteq')" />
+<input class="btn btn-primary" type="button" value="⊇"  onmousedown="noBlur()" onclick="insert(this,'\\supseteq')" />
+<input class="btn btn-primary" type="button" value="∅"  onmousedown="noBlur()" onclick="insert(this,'\\emptyset')" />
+<input class="btn btn-primary" type="button" value="𝓤"  onmousedown="noBlur()" onclick="insert(this,'\\mathcal{U}')" />
+<input class="btn btn-primary" type="button" value="ᶜ"  onmousedown="noBlur()" onclick="insert(this,'^{c}')" />
+<input class="btn btn-primary" type="button" value="∪"  onmousedown="noBlur()" onclick="insert(this,'\\cup')" />
+<input class="btn btn-primary" type="button" value="∩"  onmousedown="noBlur()" onclick="insert(this,'\\cap')" />
+<input class="btn btn-primary" type="button" value="⊕"  onmousedown="noBlur()" onclick="insert(this,'\\oplus')" />
+</span>
+
+<span class="button-bar aug-text-container">
+<input class="btn btn-primary" type="button" value="⊥"  onmousedown="noBlur()" onclick="insert(this,'\\bot')" />
+<input class="btn btn-primary" type="button" value="⊤"  onmousedown="noBlur()" onclick="insert(this,'\\top')" />
+<input class="btn btn-primary" type="button" value="¬"  onmousedown="noBlur()" onclick="insert(this,'\\neg')" />
+<input class="btn btn-primary" type="button" value="∧"  onmousedown="noBlur()" onclick="insert(this,'\\wedge')" />
+<input class="btn btn-primary" type="button" value="∨"  onmousedown="noBlur()" onclick="insert(this,'\\vee')" />
+<input class="btn btn-primary" type="button" value="→"  onmousedown="noBlur()" onclick="insert(this,'\\rightarrow')" />
+<input class="btn btn-primary" type="button" value="↔"  onmousedown="noBlur()" onclick="insert(this,'\\leftrightarrow')" />
+<input class="btn btn-primary" type="button" value="≡"  onmousedown="noBlur()" onclick="insert(this,'\\equiv')" />
+<input class="btn btn-primary" type="button" value="⊧"  onmousedown="noBlur()" onclick="insert(this,'\\models')" />
+<input class="btn btn-primary" type="button" value="𝔹"  onmousedown="noBlur()" onclick="insert(this,'\\mathbb{B}')" />
+</span>
+
+<span class="button-bar aug-text-container">
+<input class="btn btn-primary" type="button" value="∴"  onmousedown="noBlur()" onclick="insert(this,'\\therefore')" />
+<input class="btn btn-primary" type="button" value="∃"  onmousedown="noBlur()" onclick="insert(this,'\\exists')" />
+<input class="btn btn-primary" type="button" value="∀"  onmousedown="noBlur()" onclick="insert(this,'\\forall')" />
+<input class="btn btn-primary" type="button" value="Σ"  onmousedown="noBlur()" onclick="insert(this,'\\Sigma')" />
+<input class="btn btn-primary" type="button" value="λ"  onmousedown="noBlur()" onclick="insert(this,'\\lambda')" />
+<input class="btn btn-primary" type="button" value="φ"  onmousedown="noBlur()" onclick="insert(this,'\\varphi')" />
+<input class="btn btn-primary" type="button" value="ψ"  onmousedown="noBlur()" onclick="insert(this,'\\psi')" />
+<input class="btn btn-primary" type="button" value="θ"  onmousedown="noBlur()" onclick="insert(this,'\\theta')" />
+<input class="btn btn-primary" type="button" value="Ω"  onmousedown="noBlur()" onclick="insert(this,'\\Omega')" />
+<input class="btn btn-primary" type="button" value="Θ"  onmousedown="noBlur()" onclick="insert(this,'\\Theta')" />
+</span>
+
+<span class="button-bar aug-text-container">
+<input class="btn btn-primary" type="button" value="⁽⁾"  onmousedown="noBlur()" onclick="insert(this,'^{()}')" />
+<input class="btn btn-primary" type="button" value="ⁱ"  onmousedown="noBlur()" onclick="insert(this,'^i')" />
+<input class="btn btn-primary" type="button" value="ⁿ"  onmousedown="noBlur()" onclick="insert(this,'^n')" />
+<input class="btn btn-primary" type="button" value="⁺"  onmousedown="noBlur()" onclick="insert(this,'^+')" />
+<input class="btn btn-primary" type="button" value="⁻"  onmousedown="noBlur()" onclick="insert(this,'^-')" />
+<input class="btn btn-primary" type="button" value="ₖ"  onmousedown="noBlur()" onclick="insert(this,'_k')" />
+<input class="btn btn-primary" type="button" value="ₘ"  onmousedown="noBlur()" onclick="insert(this,'_m')" />
+<input class="btn btn-primary" type="button" value="ₙ"  onmousedown="noBlur()" onclick="insert(this,'_n')" />
+<input class="btn btn-primary" type="button" value="₊"  onmousedown="noBlur()" onclick="insert(this,'_+')" />
+<input class="btn btn-primary" type="button" value="₋"  onmousedown="noBlur()" onclick="insert(this,'_-')" />
+</span>
+
+<span class="button-bar aug-text-container">
+<input class="btn btn-primary" type="button" value="⁰"  onmousedown="noBlur()" onclick="insert(this,'^0')" />
+<input class="btn btn-primary" type="button" value="¹"  onmousedown="noBlur()" onclick="insert(this,'^1')" />
+<input class="btn btn-primary" type="button" value="²"  onmousedown="noBlur()" onclick="insert(this,'^2')" />
+<input class="btn btn-primary" type="button" value="³"  onmousedown="noBlur()" onclick="insert(this,'^3')" />
+<input class="btn btn-primary" type="button" value="⁴"  onmousedown="noBlur()" onclick="insert(this,'^4')" />
+<input class="btn btn-primary" type="button" value="⁵"  onmousedown="noBlur()" onclick="insert(this,'^5')" />
+<input class="btn btn-primary" type="button" value="⁶"  onmousedown="noBlur()" onclick="insert(this,'^6')" />
+<input class="btn btn-primary" type="button" value="⁷"  onmousedown="noBlur()" onclick="insert(this,'^7')" />
+<input class="btn btn-primary" type="button" value="⁸"  onmousedown="noBlur()" onclick="insert(this,'^8')" />
+<input class="btn btn-primary" type="button" value="⁹"  onmousedown="noBlur()" onclick="insert(this,'^9')" />
+</span>
+
+<span class="button-bar aug-text-container">
+<input class="btn btn-primary" type="button" value="₀"  onmousedown="noBlur()" onclick="insert(this,'_0')" />
+<input class="btn btn-primary" type="button" value="₁"  onmousedown="noBlur()" onclick="insert(this,'_1')" />
+<input class="btn btn-primary" type="button" value="₂"  onmousedown="noBlur()" onclick="insert(this,'_2')" />
+<input class="btn btn-primary" type="button" value="₃"  onmousedown="noBlur()" onclick="insert(this,'_3')" />
+<input class="btn btn-primary" type="button" value="₄"  onmousedown="noBlur()" onclick="insert(this,'_4')" />
+<input class="btn btn-primary" type="button" value="₅"  onmousedown="noBlur()" onclick="insert(this,'_5')" />
+<input class="btn btn-primary" type="button" value="₆"  onmousedown="noBlur()" onclick="insert(this,'_6')" />
+<input class="btn btn-primary" type="button" value="₇"  onmousedown="noBlur()" onclick="insert(this,'_7')" />
+<input class="btn btn-primary" type="button" value="₈"  onmousedown="noBlur()" onclick="insert(this,'_8')" />
+<input class="btn btn-primary" type="button" value="₉"  onmousedown="noBlur()" onclick="insert(this,'_9')" />
+</span>
+</div>
+</div>
+
+</body>
+</html>
