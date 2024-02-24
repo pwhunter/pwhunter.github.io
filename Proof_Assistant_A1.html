@@ -1,0 +1,1438 @@
+Content-type:text/html; charset=utf-8
+
+
+
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>Logic in 24t1</title>
+
+<script>SUCCESS = 'Success'
+ERR_EQ = 'No rule has been applied'
+ERR_TOO_MANY = 'Too many changes have been made.  Please only apply the rule in one place'
+ERR_WRONG_RULE = 'The chosen rule does not apply'
+
+function assoc_gen(op, t1, t2){
+   return (t1.root == op) &&
+        (t2.root == op) &&
+        (t1.children[0].root == op) &&
+        (t2.children[1].root == op) &&
+        equals(t1.children[0].children[0], t2.children[0]) &&
+        equals(t1.children[0].children[1], t2.children[1].children[0]) &&
+        equals(t1.children[1], t2.children[1].children[1])
+}
+
+function comm_gen(op, t1, t2){
+   return (t1.root == op) &&
+        (t2.root == op) &&
+        equals(t1.children[0], t2.children[1]) &&
+        equals(t1.children[1], t2.children[0])
+}
+
+function dist_gen(op1, op2, t1, t2){
+    return (t1.root == op1) &&
+        (t2.root == op2) &&
+        (t1.children[1].root == op2) &&
+        (t2.children[0].root == op1) &&
+        (t2.children[1].root == op1) &&
+        equals(t1.children[0], t2.children[0].children[0]) &&
+        equals(t1.children[0], t2.children[1].children[0]) &&
+        equals(t1.children[1].children[0], t2.children[0].children[1]) &&
+        equals(t1.children[1].children[1], t2.children[1].children[1])
+}
+
+function id_gen(ident, op, t1, t2){
+    return (t1.root == op) &&
+        (t1.children[1].root == ident) &&
+        equals(t1.children[0], t2) 
+}
+
+function comp_gen(op, comp, ident, t1, t2){
+    return (t1.root == op) &&
+        (t2.root == ident) &&
+        (t1.children[1].root == comp) &&
+        equals(t1.children[0], t1.children[1].children[0])
+}
+
+function idemp_gen(op, t1, t2){
+    return (t1.root == op) &&
+        equals(t1.children[0],t1.children[1]) &&
+        equals(t1.children[0],t2)
+}
+
+function dblc_gen(comp, t1, t2){
+    return (t1.root == comp) &&
+        (t1.children[0].root == comp) &&
+        equals(t1.children[0].children[0],t2)
+}
+
+function equals(t1, t2){
+    if (t1.root != t2.root)
+        return false
+    if (t1.children.length != t2.children.length)
+        return false
+    for(var i=0; i<t1.children.length; i++)
+        if (!equals(t1.children[i], t2.children[i]))
+            return false
+    return true
+}
+
+function apply_all(f, t1, t2, symmetric){
+    if(equals(t1,t2)) return ERR_EQ
+    if(f(t1,t2) || (symmetric && f(t2,t1))) return SUCCESS
+    if(t1.root != t2.root || t1.children.length != t2.children.length) return ERR_WRONG_RULE
+
+    var diff_child=-1
+    for(var i=0; i<t1.children.length; i++){
+        if(!equals(t1.children[i], t2.children[i])){
+            if(diff_child!=-1) return ERR_WRONG_RULE
+            diff_child=i
+        }
+    }
+    return apply_all(f,t1.children[diff_child], t2.children[diff_child], symmetric)
+}
+
+</script><script>rule_functions = {
+    "assoc1": (t1, t2) => apply_all((x,y)=>assoc_gen('|', x, y),t1,t2,true),
+    "assoc2": (t1, t2) => apply_all((x,y)=>assoc_gen('&', x, y),t1,t2,true),
+    "comm1":  (t1, t2) => apply_all((x,y)=>comm_gen('|', x, y),t1,t2,false),
+    "comm2":  (t1, t2) => apply_all((x,y)=>comm_gen('&', x, y),t1,t2,false),
+    "dist1":  (t1, t2) => apply_all((x,y)=>dist_gen('&', '|', x, y),t1,t2,true),
+    "dist2":  (t1, t2) => apply_all((x,y)=>dist_gen('|', '&', x, y),t1,t2,true),
+    "id1":    (t1, t2) => apply_all((x,y)=>id_gen('0', '|', x, y),t1,t2,true),
+    "id2":    (t1, t2) => apply_all((x,y)=>id_gen('1', '&', x, y),t1,t2,true),
+    "comp1":  (t1, t2) => apply_all((x,y)=>comp_gen('|', '!', '1', x, y),t1,t2,true),
+    "comp2":  (t1, t2) => apply_all((x,y)=>comp_gen('&', '!', '0', x, y),t1,t2,true),
+    "idem1":  (t1, t2) => apply_all((x,y)=>idemp_gen('|', x, y),t1,t2,true),
+    "idem2":  (t1, t2) => apply_all((x,y)=>idemp_gen('&', x, y),t1,t2,true),
+    "dblc":   (t1, t2) => apply_all((x,y)=>dblc_gen('!', x, y),t1,t2,true),
+    "defdiff":(t1, t2) => apply_all((x,y)=>set_diff(x,y),t1,t2,true),
+    "defsd":  (t1, t2) => apply_all((x,y)=>symm_diff(x,y), t1,t2,true)
+}
+
+function set_diff(t1, t2){
+    return (t1.root == '-') &&
+        (t2.root == '&') &&
+        (t2.children[1].root == '!') &&
+        equals(t1.children[0],t2.children[0]) &&
+        equals(t1.children[1],t2.children[1].children[0])
+}
+
+
+function symm_diff(t1, t2){
+    return (t1.root == '+') &&
+        (t2.root == '|') &&
+        (t2.children[0].root == '&') &&
+        (t2.children[1].root == '&') &&
+        (t2.children[0].children[1].root == '!') &&
+        (t2.children[1].children[0].root == '!') &&
+        equals(t1.children[0],t2.children[0].children[0]) &&
+        equals(t1.children[0],t2.children[1].children[0].children[0]) &&
+        equals(t1.children[1],t2.children[0].children[1].children[0]) &&
+        equals(t1.children[1],t2.children[1].children[1])
+}
+
+</script><script>parser = {
+    symbols: [],
+    symbol_re: "",
+    equality: {"display": "=", "markdown": "=", "latex": "="},
+    constants: [],
+    unaryOps: [],
+    binaryOps: [],
+
+    init: function(){
+        parser.symbol_re = ""
+        for(var i=0; i < parser.symbols.length; i++){
+            
+            parser.symbol_re += parser.symbols[i]["text"].replace(/[\\\!\@\#\$\%\^\&\*\)\(\+\=\.\<\>\{\}\[\]\:\;\'\"\|\~\`\_\-]/, x=>"\\"+x) +"|"
+        }
+        parser.symbol_re = parser.symbol_re.substring(0,parser.symbol_re.length-1)
+
+        parser.constants = parser.symbols.filter(sym => Math.abs(sym["arity"])==0)
+        parser.unaryOps = parser.symbols.filter(sym => Math.abs(sym["arity"])==1).reverse()
+        parser.binaryOps = parser.symbols.filter(sym => sym["arity"]==2)
+    },
+    
+    textify: function(type, content){
+        if(type=='latex')
+            return parser.texify(content)
+        if(type=='markdown')
+            return parser.mdify(content)
+        if(type=='html')
+            return parser.htmlify(content)
+
+        return 'Not yet implemented'
+    },
+
+    texify: function(content){
+        var retval = "\\[\\begin{array}{rclr}\n    " + parser.toLaTeX(content.LHS)
+        for(let i=0; i<content.expressions.length; i++)
+            retval += "&"+parser.equality["latex"]+"& "+parser.toLaTeX(content.expressions[i],false)+" &\\quad\\text{("+parser.toLaTeX(content.rules[i],true)+")}\\\\\n    "
+        
+        retval += "&"+parser.equality["latex"]+"& "+parser.toLaTeX(content.RHS,false)+" &\\quad\\text{("+parser.toLaTeX(content.rules[content.rules.length-1],true)+")}\n"
+        retval +="\\end{array}\\]"
+        
+        return retval
+    },
+
+    mdify: function(content){
+        var retval = "||||\n|-|-|-|\n|" + parser.toMarkdown(content.LHS)+"|"
+        for(let i=0; i<content.expressions.length; i++)
+            retval += parser.equality['markdown'] + " "+parser.toMarkdown(content.expressions[i]) + "| (" + parser.toMarkdown(content.rules[i]) + ") |\n||"
+        retval += parser.equality['markdown'] + " "+parser.toMarkdown(content.RHS)+"| ("+parser.toMarkdown(content.rules[content.rules.length-1])+") |"
+        return retval
+
+    },
+
+    htmlify: function(content){
+        var retval = "<table style=\"white-space:nowrap;\"><tr><td>" + content.LHS + "</td>"
+        for(let i=0; i<content.expressions.length; i++)
+            retval += "<td>&nbsp;" + parser.equality['display'] + " " + content.expressions[i] + "</td><td> &nbsp;&nbsp;&nbsp;(" + content.rules[i] + ")</td></tr><tr><td></td>"
+        retval += "<td>&nbsp;" + parser.equality['display'] + " "+content.RHS+"</td><td> &nbsp;&nbsp;&nbsp;("+content.rules[content.rules.length-1]+") </td></tr></table>"
+        return retval
+    },
+        
+
+    toLaTeX: function(str, inText){
+        var re = new RegExp(parser.symbol_re,"g")
+        return str.replace(re, txt => (inText?"$":"")+parser.getSymbol("text","latex",txt)+(inText?"$":" "))
+    },
+
+    toMarkdown: function(str){
+        var re = new RegExp(parser.symbol_re,"g")
+        return str.replace(re, txt => parser.getSymbol("text", "markdown",txt))
+    },
+
+
+    toASCII: function(str){
+        var re = new RegExp(parser.symbol_re,"g")
+        return sanitize(str).replace(re, txt => parser.getSymbol("text","id",txt))
+    },
+
+    getSymbol: (key, val, id) => parser.symbols.filter(s => s[key]==id)[0][val],
+
+    getSymbolText: symbol_id => parser.getSymbol("id","text",symbol_id),
+    getSymbolArity: symbol_id => parser.getSymbol("id","arity",symbol_id),
+
+    checkChars: function(str){
+        var accepted = new RegExp(parser.symbol_re + "|[A-Za-z()]","g")
+        return sanitize(str).replace(accepted,'')
+    },
+
+    parse: function(str){
+        var cc = parser.checkChars(str)
+        if(cc!="")
+            return [null, "Unexpected characters: ("+Array.from(cc).join(',')+")"]
+        str = parser.toASCII(str)
+        var bal = checkParens(str)
+        if(bal!=0)
+            return [null, "Unmatched '"+(bal>0?'(':')')+"'"]
+
+        var tree = parser.parse_E(str, 0, str.length)
+
+        return [tree, (tree==null?"Unable to parse expression":"")]
+    },
+
+    is_leaf: function(str){
+        if(str.length!=1)
+            return false
+        
+        var regexp = "[A-Za-z]"        
+        for (i=0; i<parser.constants.length; i++)
+            regexp += "|"+parser.constants[i]["id"]
+        
+        return new RegExp(regexp).test(str)
+    },
+
+    parse_E: function(str, i, j){
+        if(i>=j) return null
+ 
+        if(i+1==j){
+            if(parser.is_leaf(str.substring(i,j))){
+                return {root:str.substring(i,j), children:[]}
+            }
+            else
+                return null
+        }
+
+        for(var uop=0; uop<parser.unaryOps.length; uop++){
+            if(parser.unaryOps[uop]["arity"]==1 && str.charAt(i)==parser.unaryOps[uop]["id"]){
+                var child = parser.parse_E(str,i+1,j)
+                if(child==null) return null
+                return {root:parser.unaryOps[uop]["id"], children:[child]}
+            }
+            if(parser.unaryOps[uop]["arity"]==-1 && str.charAt(j-1)==parser.unaryOps[uop]["id"]){
+                var child = parser.parse_E(str,i,j-1)
+                if(child==null) return null
+                return {root:parser.unaryOps[uop]["id"], children:[child]}
+            }
+        }
+        
+        if(str.charAt(i)=='(' && str.charAt(j-1)==')')
+                return parser.parse_EorB(str,i+1,j-1)
+        
+        return null
+    },
+
+    parse_EorB: function(str, i, j){
+        var child = parser.parse_E(str,i,j)
+        if(child!=null) return child
+
+        for(var k=i+1; k<j-1; k++){
+            for(var bOp=0; bOp<parser.binaryOps.length; bOp++){
+                if(str.charAt(k) == parser.binaryOps[bOp]["id"]){
+                    var LHS = parser.parse_E(str,i,k)
+                    if(LHS!=null){
+                        var RHS = parser.parse_E(str,k+1,j)
+                        if(RHS!=null)
+                            return {root:parser.binaryOps[bOp]["id"], children:[LHS,RHS]}
+                    }
+                }
+            }
+        }
+        return null
+    },
+
+    unparse: function(tree, type){
+        switch(tree.children.length){
+            case 0:
+                if(/[A-Za-z]/.test(tree.root)){
+                    return [tree.root,0]
+                }
+                else{
+                    return [parser.getSymbol("id", type, tree.root),0]
+                }
+
+            case 1:
+                let rec = parser.unparse(tree.children[0], type)
+                if(rec[1]==2) rec[0] = "("+rec[0]+")"
+                if(parser.getSymbolArity(tree.root)<0)
+                    rec[0] = rec[0]+parser.getSymbol("id", type, tree.root)
+                else
+                    rec[0] = parser.getSymbol("id", type, tree.root)+rec[0]
+                return [rec[0],1]
+
+            case 2:
+                let lrec = parser.unparse(tree.children[0], type)
+                if(lrec[1]==2) lrec[0] = "("+lrec[0]+")"
+                let rrec = parser.unparse(tree.children[1], type)
+                if(rrec[1]==2) rrec[0] = "("+rrec[0]+")"
+                return [lrec[0] + " "+ parser.getSymbol("id", type, tree.root)+" " + rrec[0], 2]
+        }
+        return null
+    }
+}
+
+sanitize = str => "("+str.replace(/\s/g,"")+")"
+
+function checkParens(str){
+    var count=0
+    var i=0
+    while(count>=0 && i<str.length){
+        switch(str.charAt(i)){
+            case '(':
+                count+=1
+                break
+            case ')':
+                count-=1
+                break
+            default:
+        }
+        i+=1
+    }
+    return count
+}
+
+</script><script>/* TODO: Toggle visibility with css classes */
+/* TODO: Add shortcuts to symbols */
+
+var problems
+var rules
+
+var outputTypes = {"latex": ["Show LaTeX", "Hide LaTeX"], "markdown": ["Show Markdown", "Hide Markdown"], "html": ["Show HTML", "Hide HTML"]}
+
+
+function init(){
+    parser.symbols = JSON.parse(document.getElementById("symbols_json").value)
+    parser.equality = JSON.parse(document.getElementById("equality_json").value)
+    parser.init()
+
+    rules = JSON.parse(document.getElementById("rules_json").value)
+    problems = JSON.parse(document.getElementById("problems_json").value)
+    
+
+    var tbs = document.getElementsByClassName("aug-text-container")
+    for(let i=0; i<tbs.length; i++){
+        tbs[i].style.width = (35*parser.symbols.length)+"px"
+    }
+}
+
+/*
+function selectProblem(){
+    let probs = document.getElementsByClassName("problem")
+    for (let i=0; i<probs.length; i++)
+        probs[i].style.display="none"
+
+    let prob_selector = document.getElementById("probs")
+    var selection = prob_selector.options[prob_selector.selectedIndex].value
+    var sel_prob = document.getElementById(selection)
+    if(sel_prob!=null)
+        sel_prob.style.display="block"
+}
+*/
+
+function createProblem(proof){
+
+}
+
+function minimize(elem){
+    let prob = elem.closest(".problem")
+    let entry = prob.getElementsByClassName("entry-all")[0]
+
+    if (elem.innerHTML=="+"){
+        elem.innerHTML="&ndash;"
+        entry.style.display="block"
+    }
+    else{
+        elem.innerHTML="+"
+        entry.style.display="none"
+    }
+}
+
+function restart(elem){
+    let prob = elem.closest(".problem")
+    let oldlines = prob.getElementsByClassName("entry-old")
+    oldlines[0].style.display="none"
+    
+    for(let i=oldlines.length-1; i>0; i--){
+        oldlines[i].parentElement.removeChild(oldlines[i])
+    }
+    
+    prob.getElementsByClassName("entry-prev")[0].style.display="none"
+    
+    let currline = prob.getElementsByClassName("entry-curr")[0]
+    currline.getElementsByClassName("text-formula")[0].value = ""
+    currline.getElementsByClassName("rules")[0].selectedIndex = 0
+    currline.style.display="block"
+    
+    prob.getElementsByClassName("entry-end")[0].style.display="none"
+    for(type in outputTypes){
+        hide_outtext(type, prob.getElementsByClassName("btn-"+type)[0])
+    }
+}
+
+function kbShortcut(event){
+    let btns = event.target.closest(".aug-text").getElementsByClassName("btn")
+    if (event.keyCode == 13) 
+        event.preventDefault();
+    else if (event.keyCode >= 48 && event.keyCode <= 57 && !(event.shiftKey || event.ctrlKey || event.altKey || event.metaKey)){      
+        if(event.keyCode-48 < btns.length)
+            btns[event.keyCode-48].onclick()
+        event.preventDefault();
+    }
+    else if (event.key=="&"){
+        btns[4].onclick()
+        event.preventDefault()
+    }
+    else if (event.key == "'"){
+        btns[2].onclick()
+        event.preventDefault()
+    }
+    else if (event.key == "|"){
+        btns[3].onclick()
+        event.preventDefault()
+    }
+}
+
+function insert(elem, symbol_id){
+  let symbol = parser.getSymbolText(symbol_id)
+
+  let tb = elem.closest(".aug-text").getElementsByClassName("text-formula")[0]
+  let ss = tb.selectionStart;
+  let se = tb.selectionEnd;
+  tb.value = tb.value.substring(0,ss)+symbol+tb.value.substring(se);
+  tb.focus();
+  tb.selectionStart=ss+symbol.length;
+  tb.selectionEnd=ss+symbol.length;
+  tb.onblur = hideBars;
+}
+
+function showBar(elem){
+    let bb = elem.parentElement.getElementsByClassName("button-bar")[0]
+    bb.style.visibility="visible"
+}
+
+function noBlur(elem){
+    let tb = elem.closest(".problem").getElementsByClassName("text-formula")[0];
+    tb.onblur = null;
+}
+
+function hideBars(){
+    let bbs = document.getElementsByClassName("button-bar");
+    for (let i=0; i<bbs.length; i++){
+        bbs[i].style.visibility="hidden"
+    }
+}
+
+function editLine(elem){
+    let prob = elem.closest(".problem")
+    let entries_old = prob.getElementsByClassName("entry-old")
+    let entry_prev = elem.closest(".entry-prev")
+    let formula = entry_prev.getElementsByClassName("entry-ok")[0].innerHTML
+    let rule = entry_prev.getElementsByClassName("rule-ok")[0].innerHTML
+    let rule_id = rules.filter(r => r["text"]==rule)[0]["name"]
+    
+    if(entries_old.length > 1){
+        entry_old = entries_old[entries_old.length - 1]
+        entry_prev.getElementsByClassName("entry-ok")[0].innerHTML = entry_old.getElementsByClassName("entry-ok")[0].innerHTML
+        entry_prev.getElementsByClassName("rule-ok")[0].innerHTML = entry_old.getElementsByClassName("rule-ok")[0].innerHTML
+        entry_old.remove()
+    }
+    else{
+        entry_prev.style.display="none"
+    }
+    prob.getElementsByClassName("text-formula")[0].value = formula
+    prob.getElementsByClassName("rules")[0].value = rule_id
+
+    prob.getElementsByClassName("entry-curr")[0].style.display="block"
+    prob.getElementsByClassName("entry-end")[0].style.display="none"
+    hide_latex(prob.getElementsByClassName("btn-latex")[0])
+    
+}
+
+function alertFormulaBox(prob, text){
+    let tb = prob.getElementsByClassName("text-formula")[0]
+    tb.style.outline="2px Solid red"
+    let popup = prob.getElementsByClassName("alert-formula-popup")[0]
+    popup.innerHTML = text
+    popup.classList.add("show")
+}
+
+function alertRuleSelector(prob, text){
+    let rs = prob.getElementsByClassName("rules")[0]
+    rs.style.outline="2px solid red"
+    let popup = prob.getElementsByClassName("rule-popup")[0]
+    popup.innerHTML = text
+    popup.classList.add("show")
+}
+
+function undoWarnings(elem){
+    let prob = elem.closest(".problem")
+    let tb = prob.getElementsByClassName("text-formula")[0]
+    let rs = prob.getElementsByClassName("rules")[0]    
+    let popups = prob.getElementsByClassName("popuptext")
+    tb.style.outline=""
+    rs.style.outline=""
+    for(let i=0; i<popups.length; i++)
+        popups[i].classList.remove("show")
+}
+
+function checkLine(elem){
+    let prob = elem.closest(".problem")
+    let formula = prob.getElementsByClassName("text-formula")[0].value
+    let rule_selector = prob.getElementsByClassName("rules")[0]
+    let error = false
+    if(formula == ""){
+        alertFormulaBox(prob, "Please enter an expression")
+        error = true
+    }
+    if(rule_selector.selectedIndex == 0){
+        alertRuleSelector(prob, "Please select a rule")
+        error = true
+    }
+    if(error) return
+
+    let tree = parser.parse(formula)
+
+    if(tree[0]==null){
+        alertFormulaBox(prob, tree[1])
+        return
+    }
+    tree = tree[0]
+    
+    let prev_formula = prob.getElementsByClassName("LHS")[0].innerHTML
+    let entry_prev = prob.getElementsByClassName("entry-prev")[0]
+    if(entry_prev.style.display=="block")
+        prev_formula = entry_prev.getElementsByClassName("entry-ok")[0].innerHTML
+
+    let prev_tree = parser.parse(prev_formula)[0]
+
+
+    let rule_ok = rule_functions[rule_selector.value](prev_tree,tree)
+    if(rule_ok != SUCCESS){
+        alertFormulaBox(prob,rule_ok)
+        if(rule_ok == ERR_WRONG_RULE)
+            alertRuleSelector(prob,rule_ok)
+        return
+    }
+
+
+    let goal = prob.getElementsByClassName("entry-end")[0]
+    
+    let goal_tree = parser.parse(goal.getElementsByClassName("goal-formula")[0].innerHTML)[0]
+
+    if(equals(tree, goal_tree)){
+        goal.getElementsByClassName("rule-ok")[0].innerHTML = rules.filter(r => r["name"]==rule_selector.value)[0]["text"]
+        prob.getElementsByClassName("entry-curr")[0].style.display="none"
+        prob.getElementsByClassName("entry-end")[0].style.display="block"
+    }
+    else
+        advanceLine(prob)
+}
+
+function advanceLine(prob){
+    let entries_old = prob.getElementsByClassName("entry-old")
+    let entry_old = entries_old[entries_old.length-1]    
+    let entry_prev = prob.getElementsByClassName("entry-prev")[0]
+    let formula = parser.unparse(parser.parse(prob.getElementsByClassName("text-formula")[0].value)[0], "text")[0]
+    let rule_id = prob.getElementsByClassName("rules")[0].value
+    
+    if(entry_prev.style.display == "block"){
+        new_entry_old = entry_old.cloneNode(true)
+        new_entry_old.getElementsByClassName("entry-ok")[0].innerHTML = entry_prev.getElementsByClassName("entry-ok")[0].innerHTML
+        new_entry_old.getElementsByClassName("rule-ok")[0].innerHTML = entry_prev.getElementsByClassName("rule-ok")[0].innerHTML
+        new_entry_old.style.display = "block"
+        entry_old.after(new_entry_old)
+    }
+    else{
+        entry_prev.style.display = "block"
+    }
+    entry_prev.getElementsByClassName("entry-ok")[0].innerHTML = formula
+    entry_prev.getElementsByClassName("rule-ok")[0].innerHTML = rules.filter(r => r["name"]==rule_id)[0]["text"]
+    prob.getElementsByClassName("text-formula")[0].value = ""
+    prob.getElementsByClassName("rules")[0].selectedIndex = 0
+}
+
+
+function hide_outtext(type, elem){
+    let lb = elem.closest(".entry-end").getElementsByClassName(type+"-display")[0]
+    elem.innerHTML=outputTypes[type][0]
+    elem.name=outputTypes[type][0]
+    elem.classList.remove("show-"+type)
+    lb.style.display="none"
+}
+
+function show_outtext(type, elem){
+    let lb = elem.closest(".entry-end").getElementsByClassName(type+"-display")[0]
+    let lt = lb.getElementsByClassName(type)[0]
+    if(lb.style.display!="block"){  //&#9013;
+        elem.innerHTML=outputTypes[type][1]
+        elem.classList.add("show-"+type)
+        elem.name=outputTypes[type][1]
+        lt.innerHTML = parser.textify(type, get_proof(lb.closest(".problem")))
+        lb.style.display="block"
+    }
+    else
+        hide_outtext(type, elem)
+}
+
+function copy_html(elem){
+    let ld = elem.closest(".html-display")
+    let text = ld.getElementsByClassName('html')[0]
+    var range = document.createRange()
+    range.selectNodeContents(text)
+    var sel = window.getSelection()
+    sel.removeAllRanges()
+    sel.addRange(range)
+    document.execCommand("copy")
+    sel.removeAllRanges()
+}
+
+function copy_outtext(type, elem){
+    let ld = elem.closest("."+type+"-display")
+    let latex = ld.getElementsByClassName(type)[0]
+    let latex_hidden = ld.getElementsByClassName(type+"-hidden")[0]
+
+    latex_hidden.style.display="inline"
+    latex_hidden.style.width="10px"
+
+    latex_hidden.value = parser.textify(type, get_proof(elem.closest(".problem")))
+
+    latex_hidden.select()
+    latex_hidden.setSelectionRange(0, 99999)
+    document.execCommand("copy")
+    latex_hidden.style.display="none"
+}
+
+function get_proof(prob){
+    let es = prob.getElementsByClassName("entry-start")[0]
+    let eo = prob.getElementsByClassName("entry-old")
+    let ep = prob.getElementsByClassName("entry-prev")[0]
+    let ec = prob.getElementsByClassName("entry-curr")[0]
+    let ee = prob.getElementsByClassName("entry-end")[0]
+
+    let proof = {
+        completed: (ee.style.display!="none" && ec.style.display!="block"),
+        LHS: es.getElementsByClassName("goal-formula")[0].innerHTML,
+        RHS: ee.getElementsByClassName("goal-formula")[0].innerHTML,
+        expressions: [],
+        rules: []
+    }
+
+    for(let i=1; i<eo.length; i++){
+        expr = eo[i].getElementsByClassName("entry-ok")[0]
+        rule = eo[i].getElementsByClassName("rule-ok")[0]
+        proof.expressions.push(expr.innerHTML)
+        proof.rules.push(rule.innerHTML)
+    }
+
+    if(ep.style.display=="block"){
+        proof.expressions.push(ep.getElementsByClassName("entry-ok")[0].innerHTML)
+        proof.rules.push(ep.getElementsByClassName("rule-ok")[0].innerHTML)
+    }
+
+    if(proof.completed){
+        proof.rules.push(ee.getElementsByClassName("rule-ok")[0].innerHTML)
+    }
+    else{
+        proof.expressions.push(ep.getElementsByClassName("formula-text")[0].value)
+        proof.rules.push(ep.getElementsByClassName("rules")[0].value)
+    }
+
+    return proof
+}
+
+
+function conclude(){
+}
+
+</script>
+
+
+<link rel="stylesheet" id="theme" href="https://webcms3.cse.unsw.edu.au/static/css/deeppurple.theme.a711e4987ce01476b83f6bcd82e7bca7.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"><style>.problem {
+  margin-bottom: 10; 
+  margin-top: 10;
+  display: block;
+}
+
+.problem > .container{
+  margin-top: 15px;
+}
+
+.problem  .btn{
+  line-height: 1; 
+  float: right;
+}
+
+.problem-title{
+  font-weight: bold;
+}
+
+.equality{
+  width: 12; 
+  text-align: center;
+}
+
+.entry-all{
+  display: none; 
+  transition: display 2s;
+}
+
+.entry-curr, .entry-prev, .entry-old, .entry-start, .entry-end{
+  margin-bottom: 5px;
+  margin-top: 5px;
+}
+
+.entry-prev, .entry-old, .entry-end, .entry-curr{
+  display: none;
+}
+
+.entry-start{
+  display: block;
+}
+
+.entry-vis{ 
+  display:block;
+}
+
+
+.rule-ok, .entry-ok{
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.aug-text {
+  position: relative;
+  display: inline-block;
+}
+
+.aug-text-container{
+  width: 200px;
+}
+
+.aug-text > .button-bar > .btn {
+  color: black;
+}
+
+.button-bar{
+  visibility: hidden;
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.3);
+}
+
+.button-bar > .btn{
+  float: left;
+  width:35px;
+}
+
+
+.goal-formula{
+  border: 1px dotted #571b7e;
+  padding: 5px;
+  background-color: #fce8ff;  
+  color: #803155;
+}
+
+
+.markdown-display, .latex-display, .html-display{
+  display: none;
+  float: right;
+  position: absolute;
+  width: auto; 
+  z-index: 1;
+  top: 100%; 
+  right:8px; 
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.75); 
+  padding: 8px 8px 8px 8px; 
+  background-color:white; 
+  opacity:95%;
+}
+
+.btn-markdown::after, .btn-latex::after, .btn-html::after{ 
+  content: '\025b6';
+  font-size: 13px;
+  color: white;
+  float: right;
+  margin-left: 5px;
+}
+
+.show-markdown::after, .show-latex::after, .show-html::after{
+  content: '\025bc';
+}
+
+.markdown, .latex, .html{
+  overflow-x: auto;
+  max-width:720px;
+}
+
+.disclaimer{
+  float:right; 
+  font-size:11px;
+}
+
+
+#problem-custom{display:none}
+
+.custom .text-formula {color:black}
+.btn.custom {line-height:1; float:none}
+
+.btn-danger { color: #ffffff;}
+.btn-info { color: #ffffff;}
+
+.minimizer {
+  color: white;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  position: relative;
+  top:-10px;
+  margin-bottom:-10px;
+}
+
+.minimizer:hover,
+.minimizer:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+
+.popup {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.popup .popuptext {
+  visibility: hidden;
+  width: 180px;
+  background-color: #a55;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 4px;
+  position: absolute;
+  z-index: 1;
+  top: 125%;
+  left: 50%;
+  margin-left: -90px;
+  opacity: 90%
+}
+
+/* Popup arrow */
+.popup .popuptext::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #a55 transparent;
+  opacity: 90%
+}
+
+.popup .show {
+  visibility: visible;
+  -webkit-animation: fadeIn 0.5s;
+  animation: fadeIn 0.5s
+}
+
+/* Add animation (fade in the popup) */
+@-webkit-keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity: 0.90;}
+}
+
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity:0.90 ;}
+}
+
+</style>
+
+<input type="hidden" id="rules_json" value='[{"name": "assoc1", "text": "Associativity of \u222a", "LHS": "(A\u222aB)\u222aC", "RHS": "A\u222a(B\u222aC)", "level": 0}, {"name": "assoc2", "text": "Associativity of \u2229", "LHS": "(A\u2229B)\u2229C", "RHS": "A\u2229(B\u2229C)", "level": 0}, {"name": "comm1", "text": "Commutatitivity of \u222a", "LHS": "A\u222aB", "RHS": "B\u222aA", "level": 0}, {"name": "comm2", "text": "Commutatitivity of \u2229", "LHS": "A\u2229B", "RHS": "B\u2229A", "level": 0}, {"name": "dist1", "text": "Distributivity of \u2229 over \u222a", "LHS": "A\u2229(B\u222aC)", "RHS": "(A\u2229B)\u222a(A\u2229C)", "level": 0}, {"name": "dist2", "text": "Distributivity of \u222a over \u2229", "LHS": "A\u222a(B\u2229C)", "RHS": "(A\u222aB)\u2229(A\u222aC)", "level": 0}, {"name": "id1", "text": "Identity of \u222a", "LHS": "A\u222a\u2205", "RHS": "A", "level": 0}, {"name": "id2", "text": "Identity of \u2229", "LHS": "A\u2229\ud835\udce4", "RHS": "A", "level": 0}, {"name": "comp1", "text": "Complement with \u222a", "LHS": "A\u222aA\u1d9c", "RHS": "\ud835\udce4", "level": 0}, {"name": "comp2", "text": "Complement with \u2229", "LHS": "A\u2229A\u1d9c", "RHS": "\u2205", "level": 0}, {"name": "defdiff", "text": "Definition of \\", "LHS": "A\\B", "RHS": "A\u2229B\u1d9c", "level": 1}, {"name": "defsd", "text": "Definition of \u2295", "LHS": "A\u2295B", "RHS": "(A\u2229B\u1d9c)\u222a(A\u1d9c\u2229B)", "level": 1}, {"name": "idem1", "text": "Idempotence of \u222a", "LHS": "A\u222aA", "RHS": "A", "level": 2}, {"name": "idem2", "text": "Idempotence of \u2229", "LHS": "A\u2229A", "RHS": "A", "level": 2}, {"name": "dblc", "text": "Double complement", "LHS": "A\u1d9c\u1d9c", "RHS": "A", "level": 2}]'/>
+<input type="hidden" id="symbols_json" value='[{"id": "0", "name": "Empty set", "display": "\u2205", "text": "\u2205", "markdown": "\u2205", "latex": "\\emptyset", "arity": 0}, {"id": "1", "name": "Universal set", "display": "\ud835\udce4", "text": "\ud835\udce4", "markdown": "\ud835\udce4", "latex": "\\mathcal{U}", "arity": 0}, {"id": "!", "name": "Complement", "display": "\u2201", "text": "\u1d9c", "markdown": "\u1d9c", "latex": "^{c}", "arity": -1}, {"id": "|", "name": "Union", "display": "\u222a", "text": "\u222a", "markdown": "\u222a", "latex": "\\cup", "arity": 2}, {"id": "&", "name": "Intersection", "display": "\u2229", "text": "\u2229", "markdown": "\u2229", "latex": "\\cap", "arity": 2}, {"id": "-", "name": "Set difference", "display": "\\", "text": "\\", "markdown": "\\", "latex": "\\setminus", "arity": 2}, {"id": "+", "name": "Symmetric difference", "display": "\u2295", "text": "\u2295", "markdown": "\u2295", "latex": "\\oplus", "arity": 2}]'/>
+<input type="hidden" id="equality_json" value='{"display": "=", "markdown": "=", "latex": "="}'/>
+<input type="hidden" id="problems_json" value='[{"id": "prob0", "name": "Assignment 1 Q2 (a) [Annihilation]", "LHS": "A \u2229 \u2205", "RHS": "\u2205"}, {"id": "prob1", "name": "Assignment 1 Q2 (b)", "LHS": "(A \\ C) \u222a (B \\ C)", "RHS": "(A \u222a B) \\ C"}, {"id": "prob2", "name": "Assignment 1 Q2 (c)", "LHS": "A \u2295 \ud835\udce4", "RHS": "A\u1d9c"}, {"id": "prob3", "name": "Assignment 1 Q2 (d)", "LHS": "(A \u2229 B)\u1d9c", "RHS": "A\u1d9c \u222a B\u1d9c"}]'/>
+
+</head>
+<body onload="init()">
+<form method="POST">
+<input type="hidden" id="zID" value="z3520914"/>
+
+<div class="container"  style="margin-bottom:40px">
+
+
+<div id = "prob0" class="row panel panel-primary problem">
+<div class="panel-heading">
+<span class="problem-title">Assignment 1 Q2 (a) [Annihilation]</span>: Show that 
+    <span class="goal-formula LHS">A ∩ ∅</span>
+= 
+    <span class="goal-formula RHS">∅</span>
+.
+<span class="minimizer" onclick="minimize(this)">+</span>
+</div>
+<div class="container entry-all">
+<div class="entry-start row">
+    <div class="col-sm-10">
+    <label class="goal-formula">A ∩ ∅</label>
+    </div>
+    <div class="col-sm-2">
+    <button type="button" class="btn btn-danger btn-del" title="Start again" onclick="restart(this)">Restart</button>
+    </div>
+</div>
+
+
+<div class="entry-old row ">
+    <div class="col-sm-5">
+    <label class="equality">=</label>
+    <span class="entry-ok"></span>
+    </div>
+    <div class="col-sm-5">
+    <span class="rule-ok"></span>
+    </div>
+    <div class="col-sm-2">
+    </div>
+</div>
+
+
+<div class="entry-prev row ">
+    <div class="col-sm-5">
+        <label class="equality">=</label>
+        <span class="entry-ok"></span>
+    </div>
+    <div class="col-sm-5">
+        <span class="rule-ok"></span>
+    </div>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-info btn-del" title="Edit/Remove this line" onclick="editLine(this)"><i class="fa fa-edit"></i> Edit</button>
+    </div>
+</div>
+
+
+<div class="entry-curr row entry-vis">
+    <div class="col-sm-5">
+        <label class="equality">=</label>
+        
+        <div class="aug-text popup">
+            <span class="button-bar aug-text-container">
+<input class="btn btn-warning" type="button" value="∅"  onmousedown="noBlur(this)" onclick="insert(this,'0')" title="Empty set (0)" />
+<input class="btn btn-warning" type="button" value="𝓤"  onmousedown="noBlur(this)" onclick="insert(this,'1')" title="Universal set (1)" />
+<input class="btn btn-warning" type="button" value="∁"  onmousedown="noBlur(this)" onclick="insert(this,'!')" title="Complement (2)" />
+<input class="btn btn-warning" type="button" value="∪"  onmousedown="noBlur(this)" onclick="insert(this,'|')" title="Union (3)" />
+<input class="btn btn-warning" type="button" value="∩"  onmousedown="noBlur(this)" onclick="insert(this,'&')" title="Intersection (4)" />
+<input class="btn btn-warning" type="button" value="\"  onmousedown="noBlur(this)" onclick="insert(this,'-')" title="Set difference (5)" />
+<input class="btn btn-warning" type="button" value="⊕"  onmousedown="noBlur(this)" onclick="insert(this,'+')" title="Symmetric difference (6)" />
+
+            </span>
+            <input class="text-formula aug-text-container" type="text" onfocus="showBar(this)" onblur="hideBars()" onkeydown="kbShortcut(event)" value=""/>
+            <span class="popuptext alert-formula-popup">Please enter an expression</span>
+        </div>
+
+    </div>
+    <div class="col-sm-5">
+        
+        <div class="popup">
+        <span class="popuptext rule-popup">Please select a rule</span>
+        <select class="rules" name="rules" style="width:100%">
+            <option value="">Select rule...</option><option value="assoc1" >Associativity of ∪: (A∪B)∪C = A∪(B∪C)</option><option value="assoc2" >Associativity of ∩: (A∩B)∩C = A∩(B∩C)</option><option value="comm1" >Commutatitivity of ∪: A∪B = B∪A</option><option value="comm2" >Commutatitivity of ∩: A∩B = B∩A</option><option value="dist1" >Distributivity of ∩ over ∪: A∩(B∪C) = (A∩B)∪(A∩C)</option><option value="dist2" >Distributivity of ∪ over ∩: A∪(B∩C) = (A∪B)∩(A∪C)</option><option value="id1" >Identity of ∪: A∪∅ = A</option><option value="id2" >Identity of ∩: A∩𝓤 = A</option><option value="comp1" >Complement with ∪: A∪Aᶜ = 𝓤</option><option value="comp2" >Complement with ∩: A∩Aᶜ = ∅</option><option disabled>──────────</option><option value="defdiff"  >Definition of \: A\B = A∩Bᶜ</option><option value="defsd"  >Definition of ⊕: A⊕B = (A∩Bᶜ)∪(Aᶜ∩B)</option><option disabled>──────────</option><option value="idem1"  >Idempotence of ∪: A∪A = A</option><option value="idem2"  >Idempotence of ∩: A∩A = A</option><option value="dblc"  >Double complement: Aᶜᶜ = A</option></select></div>
+    </div>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-info  btn-check" title="Check this line" onclick="checkLine(this)" onblur="undoWarnings(this)"><i class="fa fa-check"></i> Check</button><!-- &#x2714; -->
+    </div>
+</div>
+
+
+
+<div class="entry-end row ">
+    <div class="container">
+        <div class="row">
+    <div class="col-sm-5">
+        <label class="equality">= </label>
+        <label class="goal-formula">∅</label>
+    </div>
+    <div class="col-sm-4">
+        <span class="rule-ok"></span>
+    </div>
+    </div>
+    <div class="row">
+    <div class="col-sm-8"></div>
+    <!--div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-markdown" title="Show Markdown" onclick="show_outtext('markdown', this)">Show Markdown</button>
+        <div class="markdown-display">
+        <pre class="markdown"></pre>
+        <textarea class="markdown-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_outtext('markdown',this)">Copy to clipboard</button>
+        </div>
+    </div-->
+    <div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-markdown" title="Show HTML" onclick="show_outtext('html', this)">Show HTML</button>
+        <div class="html-display">
+        <pre class="html"></pre>
+        <textarea class="html-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_html(this)">Copy to clipboard</button>
+        </div>
+    </div>
+    <div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-latex" title="Show LaTeX" onclick="show_outtext('latex', this)">Show LaTeX</button>
+        <div class="latex-display">
+        <pre class="latex"></pre>
+        <textarea class="latex-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_outtext('latex', this)">Copy to clipboard</button>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+</div> 
+</div>
+
+<div id = "prob1" class="row panel panel-primary problem">
+<div class="panel-heading">
+<span class="problem-title">Assignment 1 Q2 (b)</span>: Show that 
+    <span class="goal-formula LHS">(A \ C) ∪ (B \ C)</span>
+= 
+    <span class="goal-formula RHS">(A ∪ B) \ C</span>
+.
+<span class="minimizer" onclick="minimize(this)">+</span>
+</div>
+<div class="container entry-all">
+<div class="entry-start row">
+    <div class="col-sm-10">
+    <label class="goal-formula">(A \ C) ∪ (B \ C)</label>
+    </div>
+    <div class="col-sm-2">
+    <button type="button" class="btn btn-danger btn-del" title="Start again" onclick="restart(this)">Restart</button>
+    </div>
+</div>
+
+
+<div class="entry-old row ">
+    <div class="col-sm-5">
+    <label class="equality">=</label>
+    <span class="entry-ok"></span>
+    </div>
+    <div class="col-sm-5">
+    <span class="rule-ok"></span>
+    </div>
+    <div class="col-sm-2">
+    </div>
+</div>
+
+
+<div class="entry-prev row ">
+    <div class="col-sm-5">
+        <label class="equality">=</label>
+        <span class="entry-ok"></span>
+    </div>
+    <div class="col-sm-5">
+        <span class="rule-ok"></span>
+    </div>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-info btn-del" title="Edit/Remove this line" onclick="editLine(this)"><i class="fa fa-edit"></i> Edit</button>
+    </div>
+</div>
+
+
+<div class="entry-curr row entry-vis">
+    <div class="col-sm-5">
+        <label class="equality">=</label>
+        
+        <div class="aug-text popup">
+            <span class="button-bar aug-text-container">
+<input class="btn btn-warning" type="button" value="∅"  onmousedown="noBlur(this)" onclick="insert(this,'0')" title="Empty set (0)" />
+<input class="btn btn-warning" type="button" value="𝓤"  onmousedown="noBlur(this)" onclick="insert(this,'1')" title="Universal set (1)" />
+<input class="btn btn-warning" type="button" value="∁"  onmousedown="noBlur(this)" onclick="insert(this,'!')" title="Complement (2)" />
+<input class="btn btn-warning" type="button" value="∪"  onmousedown="noBlur(this)" onclick="insert(this,'|')" title="Union (3)" />
+<input class="btn btn-warning" type="button" value="∩"  onmousedown="noBlur(this)" onclick="insert(this,'&')" title="Intersection (4)" />
+<input class="btn btn-warning" type="button" value="\"  onmousedown="noBlur(this)" onclick="insert(this,'-')" title="Set difference (5)" />
+<input class="btn btn-warning" type="button" value="⊕"  onmousedown="noBlur(this)" onclick="insert(this,'+')" title="Symmetric difference (6)" />
+
+            </span>
+            <input class="text-formula aug-text-container" type="text" onfocus="showBar(this)" onblur="hideBars()" onkeydown="kbShortcut(event)" value=""/>
+            <span class="popuptext alert-formula-popup">Please enter an expression</span>
+        </div>
+
+    </div>
+    <div class="col-sm-5">
+        
+        <div class="popup">
+        <span class="popuptext rule-popup">Please select a rule</span>
+        <select class="rules" name="rules" style="width:100%">
+            <option value="">Select rule...</option><option value="assoc1" >Associativity of ∪: (A∪B)∪C = A∪(B∪C)</option><option value="assoc2" >Associativity of ∩: (A∩B)∩C = A∩(B∩C)</option><option value="comm1" >Commutatitivity of ∪: A∪B = B∪A</option><option value="comm2" >Commutatitivity of ∩: A∩B = B∩A</option><option value="dist1" >Distributivity of ∩ over ∪: A∩(B∪C) = (A∩B)∪(A∩C)</option><option value="dist2" >Distributivity of ∪ over ∩: A∪(B∩C) = (A∪B)∩(A∪C)</option><option value="id1" >Identity of ∪: A∪∅ = A</option><option value="id2" >Identity of ∩: A∩𝓤 = A</option><option value="comp1" >Complement with ∪: A∪Aᶜ = 𝓤</option><option value="comp2" >Complement with ∩: A∩Aᶜ = ∅</option><option disabled>──────────</option><option value="defdiff"  >Definition of \: A\B = A∩Bᶜ</option><option value="defsd"  >Definition of ⊕: A⊕B = (A∩Bᶜ)∪(Aᶜ∩B)</option><option disabled>──────────</option><option value="idem1"  >Idempotence of ∪: A∪A = A</option><option value="idem2"  >Idempotence of ∩: A∩A = A</option><option value="dblc"  >Double complement: Aᶜᶜ = A</option></select></div>
+    </div>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-info  btn-check" title="Check this line" onclick="checkLine(this)" onblur="undoWarnings(this)"><i class="fa fa-check"></i> Check</button><!-- &#x2714; -->
+    </div>
+</div>
+
+
+
+<div class="entry-end row ">
+    <div class="container">
+        <div class="row">
+    <div class="col-sm-5">
+        <label class="equality">= </label>
+        <label class="goal-formula">(A ∪ B) \ C</label>
+    </div>
+    <div class="col-sm-4">
+        <span class="rule-ok"></span>
+    </div>
+    </div>
+    <div class="row">
+    <div class="col-sm-8"></div>
+    <!--div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-markdown" title="Show Markdown" onclick="show_outtext('markdown', this)">Show Markdown</button>
+        <div class="markdown-display">
+        <pre class="markdown"></pre>
+        <textarea class="markdown-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_outtext('markdown',this)">Copy to clipboard</button>
+        </div>
+    </div-->
+    <div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-markdown" title="Show HTML" onclick="show_outtext('html', this)">Show HTML</button>
+        <div class="html-display">
+        <pre class="html"></pre>
+        <textarea class="html-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_html(this)">Copy to clipboard</button>
+        </div>
+    </div>
+    <div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-latex" title="Show LaTeX" onclick="show_outtext('latex', this)">Show LaTeX</button>
+        <div class="latex-display">
+        <pre class="latex"></pre>
+        <textarea class="latex-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_outtext('latex', this)">Copy to clipboard</button>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+</div> 
+</div>
+
+<div id = "prob2" class="row panel panel-primary problem">
+<div class="panel-heading">
+<span class="problem-title">Assignment 1 Q2 (c)</span>: Show that 
+    <span class="goal-formula LHS">A ⊕ 𝓤</span>
+= 
+    <span class="goal-formula RHS">Aᶜ</span>
+.
+<span class="minimizer" onclick="minimize(this)">+</span>
+</div>
+<div class="container entry-all">
+<div class="entry-start row">
+    <div class="col-sm-10">
+    <label class="goal-formula">A ⊕ 𝓤</label>
+    </div>
+    <div class="col-sm-2">
+    <button type="button" class="btn btn-danger btn-del" title="Start again" onclick="restart(this)">Restart</button>
+    </div>
+</div>
+
+
+<div class="entry-old row ">
+    <div class="col-sm-5">
+    <label class="equality">=</label>
+    <span class="entry-ok"></span>
+    </div>
+    <div class="col-sm-5">
+    <span class="rule-ok"></span>
+    </div>
+    <div class="col-sm-2">
+    </div>
+</div>
+
+
+<div class="entry-prev row ">
+    <div class="col-sm-5">
+        <label class="equality">=</label>
+        <span class="entry-ok"></span>
+    </div>
+    <div class="col-sm-5">
+        <span class="rule-ok"></span>
+    </div>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-info btn-del" title="Edit/Remove this line" onclick="editLine(this)"><i class="fa fa-edit"></i> Edit</button>
+    </div>
+</div>
+
+
+<div class="entry-curr row entry-vis">
+    <div class="col-sm-5">
+        <label class="equality">=</label>
+        
+        <div class="aug-text popup">
+            <span class="button-bar aug-text-container">
+<input class="btn btn-warning" type="button" value="∅"  onmousedown="noBlur(this)" onclick="insert(this,'0')" title="Empty set (0)" />
+<input class="btn btn-warning" type="button" value="𝓤"  onmousedown="noBlur(this)" onclick="insert(this,'1')" title="Universal set (1)" />
+<input class="btn btn-warning" type="button" value="∁"  onmousedown="noBlur(this)" onclick="insert(this,'!')" title="Complement (2)" />
+<input class="btn btn-warning" type="button" value="∪"  onmousedown="noBlur(this)" onclick="insert(this,'|')" title="Union (3)" />
+<input class="btn btn-warning" type="button" value="∩"  onmousedown="noBlur(this)" onclick="insert(this,'&')" title="Intersection (4)" />
+<input class="btn btn-warning" type="button" value="\"  onmousedown="noBlur(this)" onclick="insert(this,'-')" title="Set difference (5)" />
+<input class="btn btn-warning" type="button" value="⊕"  onmousedown="noBlur(this)" onclick="insert(this,'+')" title="Symmetric difference (6)" />
+
+            </span>
+            <input class="text-formula aug-text-container" type="text" onfocus="showBar(this)" onblur="hideBars()" onkeydown="kbShortcut(event)" value=""/>
+            <span class="popuptext alert-formula-popup">Please enter an expression</span>
+        </div>
+
+    </div>
+    <div class="col-sm-5">
+        
+        <div class="popup">
+        <span class="popuptext rule-popup">Please select a rule</span>
+        <select class="rules" name="rules" style="width:100%">
+            <option value="">Select rule...</option><option value="assoc1" >Associativity of ∪: (A∪B)∪C = A∪(B∪C)</option><option value="assoc2" >Associativity of ∩: (A∩B)∩C = A∩(B∩C)</option><option value="comm1" >Commutatitivity of ∪: A∪B = B∪A</option><option value="comm2" >Commutatitivity of ∩: A∩B = B∩A</option><option value="dist1" >Distributivity of ∩ over ∪: A∩(B∪C) = (A∩B)∪(A∩C)</option><option value="dist2" >Distributivity of ∪ over ∩: A∪(B∩C) = (A∪B)∩(A∪C)</option><option value="id1" >Identity of ∪: A∪∅ = A</option><option value="id2" >Identity of ∩: A∩𝓤 = A</option><option value="comp1" >Complement with ∪: A∪Aᶜ = 𝓤</option><option value="comp2" >Complement with ∩: A∩Aᶜ = ∅</option><option disabled>──────────</option><option value="defdiff"  >Definition of \: A\B = A∩Bᶜ</option><option value="defsd"  >Definition of ⊕: A⊕B = (A∩Bᶜ)∪(Aᶜ∩B)</option><option disabled>──────────</option><option value="idem1"  >Idempotence of ∪: A∪A = A</option><option value="idem2"  >Idempotence of ∩: A∩A = A</option><option value="dblc"  >Double complement: Aᶜᶜ = A</option></select></div>
+    </div>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-info  btn-check" title="Check this line" onclick="checkLine(this)" onblur="undoWarnings(this)"><i class="fa fa-check"></i> Check</button><!-- &#x2714; -->
+    </div>
+</div>
+
+
+
+<div class="entry-end row ">
+    <div class="container">
+        <div class="row">
+    <div class="col-sm-5">
+        <label class="equality">= </label>
+        <label class="goal-formula">Aᶜ</label>
+    </div>
+    <div class="col-sm-4">
+        <span class="rule-ok"></span>
+    </div>
+    </div>
+    <div class="row">
+    <div class="col-sm-8"></div>
+    <!--div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-markdown" title="Show Markdown" onclick="show_outtext('markdown', this)">Show Markdown</button>
+        <div class="markdown-display">
+        <pre class="markdown"></pre>
+        <textarea class="markdown-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_outtext('markdown',this)">Copy to clipboard</button>
+        </div>
+    </div-->
+    <div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-markdown" title="Show HTML" onclick="show_outtext('html', this)">Show HTML</button>
+        <div class="html-display">
+        <pre class="html"></pre>
+        <textarea class="html-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_html(this)">Copy to clipboard</button>
+        </div>
+    </div>
+    <div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-latex" title="Show LaTeX" onclick="show_outtext('latex', this)">Show LaTeX</button>
+        <div class="latex-display">
+        <pre class="latex"></pre>
+        <textarea class="latex-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_outtext('latex', this)">Copy to clipboard</button>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+</div> 
+</div>
+
+<div id = "prob3" class="row panel panel-primary problem">
+<div class="panel-heading">
+<span class="problem-title">Assignment 1 Q2 (d)</span>: Show that 
+    <span class="goal-formula LHS">(A ∩ B)ᶜ</span>
+= 
+    <span class="goal-formula RHS">Aᶜ ∪ Bᶜ</span>
+.
+<span class="minimizer" onclick="minimize(this)">+</span>
+</div>
+<div class="container entry-all">
+<div class="entry-start row">
+    <div class="col-sm-10">
+    <label class="goal-formula">(A ∩ B)ᶜ</label>
+    </div>
+    <div class="col-sm-2">
+    <button type="button" class="btn btn-danger btn-del" title="Start again" onclick="restart(this)">Restart</button>
+    </div>
+</div>
+
+
+<div class="entry-old row ">
+    <div class="col-sm-5">
+    <label class="equality">=</label>
+    <span class="entry-ok"></span>
+    </div>
+    <div class="col-sm-5">
+    <span class="rule-ok"></span>
+    </div>
+    <div class="col-sm-2">
+    </div>
+</div>
+
+
+<div class="entry-prev row ">
+    <div class="col-sm-5">
+        <label class="equality">=</label>
+        <span class="entry-ok"></span>
+    </div>
+    <div class="col-sm-5">
+        <span class="rule-ok"></span>
+    </div>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-info btn-del" title="Edit/Remove this line" onclick="editLine(this)"><i class="fa fa-edit"></i> Edit</button>
+    </div>
+</div>
+
+
+<div class="entry-curr row entry-vis">
+    <div class="col-sm-5">
+        <label class="equality">=</label>
+        
+        <div class="aug-text popup">
+            <span class="button-bar aug-text-container">
+<input class="btn btn-warning" type="button" value="∅"  onmousedown="noBlur(this)" onclick="insert(this,'0')" title="Empty set (0)" />
+<input class="btn btn-warning" type="button" value="𝓤"  onmousedown="noBlur(this)" onclick="insert(this,'1')" title="Universal set (1)" />
+<input class="btn btn-warning" type="button" value="∁"  onmousedown="noBlur(this)" onclick="insert(this,'!')" title="Complement (2)" />
+<input class="btn btn-warning" type="button" value="∪"  onmousedown="noBlur(this)" onclick="insert(this,'|')" title="Union (3)" />
+<input class="btn btn-warning" type="button" value="∩"  onmousedown="noBlur(this)" onclick="insert(this,'&')" title="Intersection (4)" />
+<input class="btn btn-warning" type="button" value="\"  onmousedown="noBlur(this)" onclick="insert(this,'-')" title="Set difference (5)" />
+<input class="btn btn-warning" type="button" value="⊕"  onmousedown="noBlur(this)" onclick="insert(this,'+')" title="Symmetric difference (6)" />
+
+            </span>
+            <input class="text-formula aug-text-container" type="text" onfocus="showBar(this)" onblur="hideBars()" onkeydown="kbShortcut(event)" value=""/>
+            <span class="popuptext alert-formula-popup">Please enter an expression</span>
+        </div>
+
+    </div>
+    <div class="col-sm-5">
+        
+        <div class="popup">
+        <span class="popuptext rule-popup">Please select a rule</span>
+        <select class="rules" name="rules" style="width:100%">
+            <option value="">Select rule...</option><option value="assoc1" >Associativity of ∪: (A∪B)∪C = A∪(B∪C)</option><option value="assoc2" >Associativity of ∩: (A∩B)∩C = A∩(B∩C)</option><option value="comm1" >Commutatitivity of ∪: A∪B = B∪A</option><option value="comm2" >Commutatitivity of ∩: A∩B = B∩A</option><option value="dist1" >Distributivity of ∩ over ∪: A∩(B∪C) = (A∩B)∪(A∩C)</option><option value="dist2" >Distributivity of ∪ over ∩: A∪(B∩C) = (A∪B)∩(A∪C)</option><option value="id1" >Identity of ∪: A∪∅ = A</option><option value="id2" >Identity of ∩: A∩𝓤 = A</option><option value="comp1" >Complement with ∪: A∪Aᶜ = 𝓤</option><option value="comp2" >Complement with ∩: A∩Aᶜ = ∅</option><option disabled>──────────</option><option value="defdiff"  >Definition of \: A\B = A∩Bᶜ</option><option value="defsd"  >Definition of ⊕: A⊕B = (A∩Bᶜ)∪(Aᶜ∩B)</option><option disabled>──────────</option><option value="idem1"  >Idempotence of ∪: A∪A = A</option><option value="idem2"  >Idempotence of ∩: A∩A = A</option><option value="dblc"  >Double complement: Aᶜᶜ = A</option></select></div>
+    </div>
+    <div class="col-sm-2">
+        <button type="button" class="btn btn-info  btn-check" title="Check this line" onclick="checkLine(this)" onblur="undoWarnings(this)"><i class="fa fa-check"></i> Check</button><!-- &#x2714; -->
+    </div>
+</div>
+
+
+
+<div class="entry-end row ">
+    <div class="container">
+        <div class="row">
+    <div class="col-sm-5">
+        <label class="equality">= </label>
+        <label class="goal-formula">Aᶜ ∪ Bᶜ</label>
+    </div>
+    <div class="col-sm-4">
+        <span class="rule-ok"></span>
+    </div>
+    </div>
+    <div class="row">
+    <div class="col-sm-8"></div>
+    <!--div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-markdown" title="Show Markdown" onclick="show_outtext('markdown', this)">Show Markdown</button>
+        <div class="markdown-display">
+        <pre class="markdown"></pre>
+        <textarea class="markdown-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_outtext('markdown',this)">Copy to clipboard</button>
+        </div>
+    </div-->
+    <div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-markdown" title="Show HTML" onclick="show_outtext('html', this)">Show HTML</button>
+        <div class="html-display">
+        <pre class="html"></pre>
+        <textarea class="html-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_html(this)">Copy to clipboard</button>
+        </div>
+    </div>
+    <div class="col-sm-2" style="position:relative">
+        <button type="button" class="btn btn-warning btn-latex" title="Show LaTeX" onclick="show_outtext('latex', this)">Show LaTeX</button>
+        <div class="latex-display">
+        <pre class="latex"></pre>
+        <textarea class="latex-hidden" style="display:none; width=5px"></textarea>
+        <button type="button" class="btn btn-info" title="Copy to clipboard" onclick="copy_outtext('latex', this)">Copy to clipboard</button>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+</div> 
+</div>
+
+
+</div>
+
+<div class="container" >
+<div class="row panel panel-info">
+<div class="panel-heading">Troubleshooting</div>
+<div class="container"  style="margin:10px">
+Warning: Refreshing the page will lose your work!<br><br>If you are having difficulty getting things to work, check each of the following:<ul> <li>Only the symbols ∅, 𝓤, ᶜ, ∪, ∩, \, ⊕, the letters A-Z and a-z, and ( and ) are permitted</li> <li>The keys 0-6 are shortcuts for the special symbols</li> <li>|, &, and ' are shortcut keys for ∪, ∩, and ᶜ respectively <li>Sets should be indicated with a single letter (or ∅ or 𝓤)</li> <li>Complement binds tighter than the binary operations (∪, ∩, \, ⊕), so A∪Bᶜ will be interpreted as A ∪ (Bᶜ)</li> <li>The binary operations (∪, ∩, \, ⊕) can only have two arguments and must be enclosed in (), although outermost parentheses can be omitted.</li> <li> Parentheses can be added as needed to disambiguate.  If in doubt, add more parentheses - the prover will remove unnecessary parentheses.<li>Only one rule can be applied at only one place on each line.</li> </ul> There may still be bugs, if you are still unable to resolve your issue, please contact me detailing the issue.
+</div>
+</div>
+</div>
+
+<div class="container">
+<hr>
+<div class="row disclaimer">
+This page is still very much in its infancy, please contact <a href="https://webcms3.cse.unsw.edu.au/users/z3520914">Paul Hunter</a> with errors, feedback, and/or suggestions for improvement.
+</div>
+</div>
+</form>
+</body>
+</html>
+
